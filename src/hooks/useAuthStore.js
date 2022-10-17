@@ -22,6 +22,46 @@ export const useAuthStore = () => {
       }, 100);
     }
   };
+  const startRegister = async ({ email, password, name }) => {
+    dispatch(onChecking());
+    try {
+      const { data } = await calendarApi.post("/auth/new", {
+        email,
+        password,
+        name,
+      });
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("token-init-date", new Date().getTime());
+      dispatch(onLogin({ name: data.name, uid: data.uid }));
+    } catch (error) {
+      console.log(error);
+      dispatch(onLogout(error.response.data?.msg || "Error en el registro"));
+
+      setTimeout(() => {
+        dispatch(clearErrorMessage());
+      }, 100);
+    }
+  };
+
+  const checkAuthToken = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return dispatch(onLogout());
+    try {
+      const { data } = await calendarApi.get("auth/renew");
+      console.log(data.token);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("token-init-date", new Date().getTime());
+      dispatch(onLogin({ name: data.name, uid: data.uid }));
+    } catch (error) {
+      localStorage.clear();
+      if (!token) return dispatch(onLogout());
+    }
+  };
+
+  const startLogout = () => {
+    localStorage.clear();
+    dispatch(onLogout());
+  };
 
   return {
     //*   propiedades
@@ -30,6 +70,9 @@ export const useAuthStore = () => {
     errorMessage,
 
     //* methods
+    checkAuthToken,
     startLogin,
+    startLogout,
+    startRegister,
   };
 };
